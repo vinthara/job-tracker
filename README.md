@@ -2,6 +2,10 @@
 
 A self-hosted web application to track job applications and networking contacts using SQLite for data storage with automatic markdown export for viewing in neovim.
 
+![Job Tracker Dashboard](screenshot.png)
+
+*Dashboard showing application statistics, funnel visualization, and job tracking table*
+
 ## Features
 
 - **🔐 Google OAuth Authentication** - Secure login with Google accounts
