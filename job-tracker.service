@@ -1,0 +1,24 @@
+# Job Tracker - Systemd Service
+#
+# Installation:
+# 1. Update YOUR_USERNAME with your actual username (aravinth)
+# 2. Copy: sudo cp job-tracker.service /etc/systemd/system/
+# 3. Reload: sudo systemctl daemon-reload
+# 4. Enable: sudo systemctl enable job-tracker
+# 5. Start: sudo systemctl start job-tracker
+# 6. Check: sudo systemctl status job-tracker
+
+[Unit]
+Description=Job Search Tracker
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/perso/job-tracker
+ExecStart=/home/YOUR_USERNAME/.local/bin/uv run streamlit run app.py --server.port 8502 --server.address 127.0.0.1
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

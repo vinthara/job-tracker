@@ -1,0 +1,20 @@
+# Generated files
+VIEW.md
+candidature.md
+contact.md
+
+# Database
+job_tracker.db
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# Claude Code
+.claude/
+
+# Streamlit secrets (OAuth credentials)
+.streamlit/secrets.toml
