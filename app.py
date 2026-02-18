@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import html
 from datetime import datetime
 from models import SessionLocal, Contact, Application, init_db
 from utils import export_to_markdown, get_company_list, generate_readable_view
@@ -11,110 +12,175 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS styling - Tokyo Night Theme
+# Custom CSS styling - inspired by word-sync
 st.markdown(
     """
     <style>
-    .stApp {
-        background-color: #1a1b26;
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+    :root {
+        --bg-main: #11131d;
+        --bg-panel: #16161e;
+        --bg-soft: #1f2335;
+        --border: #414868;
+        --text-main: #e6e9f2;
+        --text-soft: #a9b1d6;
+        --accent: #7dcfff;
+        --accent-strong: #bb9af7;
+        --shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
     }
+
+    .stApp {
+        color: var(--text-main);
+        background:
+            radial-gradient(circle at 15% 5%, #23263a 0%, transparent 35%),
+            radial-gradient(circle at 85% 20%, #1f2340 0%, transparent 30%),
+            linear-gradient(170deg, var(--bg-main), #141725 60%, #101420);
+        font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+    }
+
     section[data-testid="stSidebar"] {
-        background-color: #16161e;
+        background-color: var(--bg-panel);
+        border-right: 1px solid var(--border);
     }
 
     .stDeployButton, [data-testid="stToolbar"], #MainMenu {
         display: none !important;
     }
+
     header[data-testid="stHeader"] {
-        background-color: #1a1b26 !important;
+        background: transparent !important;
         border-bottom: none !important;
+    }
+
+    .block-container {
+        max-width: 1450px;
+        padding-top: 2rem;
     }
 
     h1 {
         color: #ffffff !important;
         font-weight: 700;
+        letter-spacing: 0.2px;
         padding-bottom: 1rem;
-        border-bottom: 3px solid #bb9af7;
+        border-bottom: 3px solid var(--accent-strong);
     }
+
     h2 {
-        color: #bb9af7;
+        color: var(--accent-strong);
         font-weight: 600;
         margin-top: 2rem;
     }
+
     h3 {
-        color: #bb9af7;
+        color: var(--accent-strong);
+        font-weight: 600;
     }
 
     p, span, label {
-        color: #ffffff;
+        color: var(--text-main);
+    }
+
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
+        color: var(--text-main);
     }
 
     .stButton>button {
         border-radius: 8px;
-        padding: 0.5rem 1.5rem;
+        padding: 0.55rem 1.25rem;
         font-weight: 500;
         border: none;
-        transition: all 0.3s;
+        transition: all 0.25s ease;
+        background-color: #24283b;
+        color: var(--accent-strong);
+        border: 1px solid var(--border);
     }
-    .stButton>button[kind="primary"] {
-        background-color: #bb9af7;
-        color: #1a1b26;
-    }
-    .stButton>button[kind="primary"]:hover {
-        background-color: #a88fd8;
+
+    .stButton>button:hover {
+        background-color: #414868;
+        box-shadow: var(--shadow);
         transform: translateY(-2px);
+    }
+
+    .stButton>button[kind="primary"] {
+        background: linear-gradient(135deg, var(--accent-strong), #95a3ff);
+        color: #1a1b26;
+        border: none;
+        font-weight: 600;
+    }
+
+    .stButton>button[kind="primary"]:hover {
         box-shadow: 0 4px 12px rgba(187, 154, 247, 0.3);
     }
 
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
-        background-color: #16161e;
+        background-color: var(--bg-panel);
         padding: 4px;
+        border: 1px solid var(--border);
         border-radius: 8px;
     }
+
     .stTabs [data-baseweb="tab"] {
         background-color: transparent;
         border-radius: 6px;
-        padding: 0.75rem 1.5rem;
+        padding: 0.75rem 1.25rem;
         font-weight: 500;
-        color: #bb9af7;
+        color: var(--accent-strong);
     }
+
     .stTabs [data-baseweb="tab"]:hover {
         background-color: #24283b;
     }
+
     .stTabs [aria-selected="true"] {
-        background-color: #bb9af7 !important;
+        background-color: var(--accent-strong) !important;
         color: #1a1b26 !important;
     }
 
     div[data-testid="stMetric"] {
-        background-color: #16161e;
+        background-color: rgba(22, 22, 30, 0.82);
         padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid #414868;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
     }
+
     div[data-testid="stMetric"] label {
-        color: #7dcfff !important;
+        color: var(--accent) !important;
     }
+
     div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-        color: #bb9af7 !important;
+        color: var(--accent-strong) !important;
     }
 
-    div[data-testid="stTextInput"] input {
+    div[data-testid="stTextInput"] input,
+    div[data-testid="stNumberInput"] input,
+    div[data-testid="stDateInput"] input,
+    div[data-testid="stSelectbox"] > div > div,
+    div[data-testid="stTextArea"] textarea {
         background-color: #16161e;
-        border: 1px solid #414868;
-        color: #a9b1d6;
-    }
-    div[data-testid="stTextInput"] input:focus {
-        border-color: #7aa2f7;
-    }
-
-    div[data-testid="stDataFrame"] {
+        border: 1px solid var(--border);
         border-radius: 8px;
-        border: 1px solid #414868;
+        color: var(--text-soft);
     }
 
-    /* Better contrast for data editor cells */
+    div[data-testid="stTextInput"] input:focus,
+    div[data-testid="stNumberInput"] input:focus,
+    div[data-testid="stDateInput"] input:focus,
+    div[data-testid="stTextArea"] textarea:focus {
+        border-color: #7aa2f7;
+        box-shadow: 0 0 0 0.08rem rgba(125, 207, 255, 0.2);
+    }
+
+    div[data-testid="stDataFrame"],
+    div[data-testid="stDataEditor"] {
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+    }
+
     [data-testid="stDataFrame"] [data-testid="glideDataEditor"] {
         --gdg-bg-cell: #1a1b26;
         --gdg-bg-cell-medium: #24283b;
@@ -124,33 +190,143 @@ st.markdown(
         --gdg-text-header: #c0caf5;
         --gdg-bg-header: #16161e;
         --gdg-bg-header-has-focus: #24283b;
+        --gdg-border-color: #2f354d;
+        --gdg-accent-color: var(--accent-strong);
     }
 
-    /* Toast notifications styling */
     .stToast {
-        background-color: #16161e !important;
-        border: 1px solid #bb9af7 !important;
+        background-color: var(--bg-panel) !important;
+        border: 1px solid var(--accent-strong) !important;
+        color: var(--text-main) !important;
     }
 
-    /* Expander styling */
     div[data-testid="stExpander"] {
-        background-color: #16161e;
-        border: 1px solid #414868;
+        background-color: var(--bg-panel);
+        border: 1px solid var(--border);
         border-radius: 8px;
     }
+
     div[data-testid="stExpander"] summary {
-        color: #bb9af7 !important;
+        color: var(--accent-strong) !important;
         font-weight: 600;
     }
 
-    /* Progress bar colors */
     .stProgress > div > div > div {
-        background-color: #bb9af7;
+        background: linear-gradient(90deg, #7dcfff 0%, #bb9af7 100%);
     }
 
-    /* Caption styling */
     .stCaption {
-        color: #565f89 !important;
+        color: var(--text-soft) !important;
+    }
+
+    [data-testid="stAlert"] {
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background-color: #24283b !important;
+    }
+
+    a {
+        color: var(--accent) !important;
+    }
+
+    .auth-hero {
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: linear-gradient(130deg, rgba(125, 207, 255, 0.12), rgba(187, 154, 247, 0.1));
+        margin-bottom: 0.8rem;
+    }
+    .auth-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #ffffff;
+        line-height: 1.2;
+    }
+    .auth-subtitle {
+        margin-top: 0.2rem;
+        color: var(--text-soft);
+        font-size: 0.95rem;
+    }
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border-radius: 12px !important;
+        border: 1px solid var(--border) !important;
+        background: rgba(22, 22, 30, 0.82) !important;
+        box-shadow: var(--shadow) !important;
+    }
+    [data-testid="stVerticalBlockBorderWrapper"] h3 {
+        margin-top: 0;
+    }
+    .auth-note {
+        color: var(--text-soft);
+        font-size: 0.92rem;
+        margin-bottom: 0.4rem;
+    }
+    .floating-user-card {
+        position: fixed;
+        top: 72px;
+        right: 18px;
+        z-index: 999;
+        width: 220px;
+        border: 1px solid #414868;
+        border-radius: 12px;
+        background: rgba(22, 22, 30, 0.92);
+        backdrop-filter: blur(8px);
+        padding: 0.8rem;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    }
+    .floating-user-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .floating-user-fallback {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #11131d;
+        background: linear-gradient(135deg,#7dcfff,#bb9af7);
+    }
+    .floating-user-name {
+        margin-top: 0.35rem;
+        color: #e6e9f2;
+        font-weight: 700;
+        font-size: 0.92rem;
+    }
+    .floating-user-email {
+        color: #a9b1d6;
+        font-size: 0.78rem;
+        word-break: break-all;
+    }
+    .floating-user-logout {
+        display: block;
+        margin-top: 0.6rem;
+        width: 100%;
+        text-align: center;
+        text-decoration: none !important;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.45rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid #414868;
+        color: #a9b1d6 !important;
+        background: #24283b;
+    }
+    .floating-user-logout:hover {
+        background: #2d3250;
+        color: #e6e9f2 !important;
+    }
+    @media (max-width: 980px) {
+        .floating-user-card {
+            position: static;
+            width: 100%;
+            margin: 0.6rem 0 0 0;
+        }
     }
     </style>
     """,
@@ -170,27 +346,83 @@ allowed_emails = [email.strip() for email in allowed_emails_str.split(",") if em
 
 # Check if user is logged in
 if not st.user.is_logged_in:
-    st.markdown("# 💼 Job Search Tracker")
-    st.markdown("### Please sign in to continue")
-    st.markdown("---")
-    st.button("Log in with Google", on_click=st.login)
+    st.markdown(
+        """
+        <div class="auth-hero">
+            <div class="auth-title">Job Search Tracker</div>
+            <div class="auth-subtitle">Track applications, responses, and contacts in one focused workspace.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    left_col, center_col, right_col = st.columns([1, 1.2, 1])
+    with center_col:
+        with st.container(border=True):
+            st.markdown("### Welcome")
+            st.markdown('<div class="auth-note">Sign in to access your application dashboard.</div>', unsafe_allow_html=True)
+            st.button("Log in with Google", on_click=st.login, type="primary", width="stretch")
     st.stop()
 
 # User is logged in - check email whitelist
 user_email = st.user.email or ""
+display_name = st.user.name or "User"
 
 if allowed_emails and user_email not in allowed_emails:
-    st.markdown("# 💼 Job Search Tracker")
-    st.markdown("---")
-    st.error("🚫 Access Denied")
-    st.warning(f"Your email address ({user_email}) is not authorized to access this application.")
-    st.info("Please contact your administrator to request access.")
-    st.button("Log out", on_click=st.logout)
+    st.markdown(
+        """
+        <div class="auth-hero">
+            <div class="auth-title">Job Search Tracker</div>
+            <div class="auth-subtitle">Track applications, responses, and contacts in one focused workspace.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    left_col, center_col, right_col = st.columns([1, 1.2, 1])
+    with center_col:
+        with st.container(border=True):
+            st.error("🚫 Access Denied")
+            st.warning(f"Your email address ({user_email}) is not authorized to access this application.")
+            st.info("Please contact your administrator to request access.")
+            st.button("Log out", on_click=st.logout, width="stretch")
     st.stop()
 
 # ============================================
 # AUTHENTICATED USER - SHOW MAIN APP
 # ============================================
+if st.query_params.get("action") == "logout":
+    st.query_params.clear()
+    st.logout()
+    st.stop()
+
+profile_picture = (
+    getattr(st.user, "picture", None)
+    or getattr(st.user, "avatar_url", None)
+    or (st.user.to_dict().get("picture") if hasattr(st.user, "to_dict") else None)
+    or (st.user.to_dict().get("photo") if hasattr(st.user, "to_dict") else None)
+)
+initial = html.escape(display_name[:1].upper()) if display_name else "U"
+avatar_html = (
+    (
+        "<div style='position:relative;width:48px;height:48px;'>"
+        f"<img src='{profile_picture}' class='floating-user-avatar' "
+        "onerror=\"this.style.display='none';this.nextElementSibling.style.display='flex';\" />"
+        f"<div class='floating-user-fallback' style='display:none;position:absolute;inset:0;'>{initial}</div>"
+        "</div>"
+    )
+    if profile_picture
+    else f"<div class='floating-user-fallback'>{initial}</div>"
+)
+st.markdown(
+    (
+        "<div class='floating-user-card'>"
+        f"{avatar_html}"
+        f"<div class='floating-user-name'>{html.escape(display_name)}</div>"
+        f"<div class='floating-user-email'>{html.escape(user_email)}</div>"
+        "<a class='floating-user-logout' href='?action=logout'>Log out</a>"
+        "</div>"
+    ),
+    unsafe_allow_html=True,
+)
 
 # Header
 st.markdown("# 💼 Job Search Tracker")
@@ -264,28 +496,11 @@ contacts = db_temp.query(Contact).all()
 contact_name_to_id = {c.company: c.id for c in contacts}
 db_temp.close()
 
-# Sidebar with info (now that data is loaded)
-with st.sidebar:
-    st.markdown("## 💼 Job Tracker")
-    st.markdown("---")
-
-    # Show user info and logout button
-    st.markdown("### 👤 User Info")
-    st.write(f"**Email:** {user_email}")
-    st.write(f"**Name:** {st.user.name or 'N/A'}")
-    st.button("Log out", on_click=st.logout, key="sidebar_logout")
-
-    st.markdown("---")
-    st.markdown("### 📝 Quick Stats")
-    total_apps = len(candidature_df) if len(candidature_df) > 0 else 0
-    active_apps = len(candidature_df[candidature_df['closed'] == 'no']) if len(candidature_df) > 0 else 0
-    st.metric("Total Applications", total_apps)
-    st.metric("Active", active_apps)
-
-    st.markdown("---")
-    st.markdown("### 📄 Files")
-    st.caption("View in neovim:")
-    st.code("nvim VIEW.md")
+# Default row ordering: newest first
+if len(candidature_df) > 0:
+    candidature_df = candidature_df.sort_values(by=["date", "id"], ascending=[False, False], na_position="last")
+if len(contact_df) > 0:
+    contact_df = contact_df.sort_values(by=["updated_date", "id"], ascending=[False, False], na_position="last")
 
 # Calculate follow-up metrics
 if len(candidature_df) > 0:
