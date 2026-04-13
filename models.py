@@ -45,6 +45,16 @@ class Application(Base):
     contact = relationship("Contact", backref="applications")
 
 
+class JobOffer(Base):
+    __tablename__ = 'job_offers'
+
+    id = Column(Integer, primary_key=True)
+    company = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    url = Column(String)
+    date_added = Column(Date, nullable=False)
+
+
 def init_db():
     """Initialize the database tables."""
     Base.metadata.create_all(bind=engine)

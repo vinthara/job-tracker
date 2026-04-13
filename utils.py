@@ -1,6 +1,6 @@
 import pandas as pd
 from datetime import datetime
-from models import SessionLocal, Contact, Application
+from models import SessionLocal, Contact, Application, JobOffer
 
 
 def _truncate_url(url: str, max_length: int = 50) -> str:
@@ -176,6 +176,38 @@ def export_to_markdown():
             f.write("- `ans_date`: Answer date (MM-DD format)\n")
             f.write("- `exp_rate`/`off_rate`: Expected/Offered daily rate in euros\n")
             f.write("- `link`: Job posting URL (last column to avoid breaking alignment)\n")
+
+        # Export job offers
+        offers = db.query(JobOffer).order_by(JobOffer.date_added.desc()).all()
+        offers_data = []
+        for offer in offers:
+            offers_data.append({
+                'id': str(offer.id),
+                'company': offer.company or '',
+                'title': offer.title or '',
+                'url': offer.url or '',
+                'date': offer.date_added.strftime('%Y-%m-%d') if offer.date_added else ''
+            })
+
+        # Define fixed column widths for offers
+        offer_widths = {
+            'id': 3,
+            'company': 20,
+            'title': 25,
+            'date': 10,
+            'url': 60  # Last column
+        }
+
+        # Write offers to markdown
+        with open('job_offers.md', 'w', encoding='utf-8') as f:
+            f.write("# 🔗 Job Offers\n\n")
+            f.write(f"*Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}*\n\n")
+
+            headers = ['id', 'company', 'title', 'date', 'url']
+            table = _create_aligned_table(headers, offers_data, offer_widths)
+            f.write(table)
+            f.write("\n\n")
+            f.write(f"**Total offers:** {len(offers_data)}\n")
 
     finally:
         db.close()

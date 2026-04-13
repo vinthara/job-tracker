@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import html
 from datetime import datetime
-from models import SessionLocal, Contact, Application, init_db
+from models import SessionLocal, Contact, Application, JobOffer, init_db
 from utils import export_to_markdown, get_company_list, generate_readable_view
 
 # Page configuration
@@ -485,9 +485,32 @@ def load_contacts():
         db.close()
 
 
+@st.cache_data(ttl=5)
+def load_job_offers():
+    """Load job offers from database."""
+    db = SessionLocal()
+    try:
+        offers = db.query(JobOffer).order_by(JobOffer.date_added.desc()).all()
+        if not offers:
+            return pd.DataFrame(columns=["id", "company", "title", "url", "date_added"])
+        offers_data = []
+        for offer in offers:
+            offers_data.append({
+                'id': offer.id,
+                'company': offer.company,
+                'title': offer.title,
+                'url': offer.url or '',
+                'date_added': pd.Timestamp(offer.date_added) if offer.date_added else pd.NaT
+            })
+        return pd.DataFrame(offers_data)
+    finally:
+        db.close()
+
+
 # Load data
 candidature_df = load_applications()
 contact_df = load_contacts()
+offers_df = load_job_offers()
 
 # Get company list and create name-to-id mapping
 company_list = get_company_list()
@@ -632,7 +655,7 @@ if len(candidature_df) > 0:
         st.markdown("---")
 
 # Create tabs
-tab1, tab2 = st.tabs(["📋 Applications", "📞 Contacts"])
+tab1, tab2, tab3 = st.tabs(["📋 Applications", "📞 Contacts", "🔗 Job Offers"])
 
 with tab1:
     st.markdown("## 📋 Job Applications")
@@ -1024,3 +1047,135 @@ with tab2:
                     db.close()
     else:
         st.info("No contacts found")
+
+with tab3:
+    st.markdown("## 🔗 Job Offers")
+
+    # Add form
+    with st.expander("➕ Add Job Offer"):
+        with st.form("add_offer"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                new_company = st.text_input("Company *", key="offer_company")
+            with col2:
+                new_title = st.text_input("Job Title *", key="offer_title")
+            with col3:
+                new_url = st.text_input("Job URL", key="offer_url")
+            submitted = st.form_submit_button("Add Offer", type="primary")
+            if submitted and new_company and new_title:
+                db = SessionLocal()
+                try:
+                    offer = JobOffer(
+                        company=new_company,
+                        title=new_title,
+                        url=new_url if new_url else None,
+                        date_added=datetime.now().date()
+                    )
+                    db.add(offer)
+                    db.commit()
+                    st.toast("✅ Offer added!")
+                    st.cache_data.clear()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error: {e}")
+                finally:
+                    db.close()
+
+    # Display and edit offers
+    if not offers_df.empty:
+        st.markdown("### 📄 Offers")
+        edited_offers = st.data_editor(
+            offers_df,
+            key="offers_editor",
+            num_rows="dynamic",
+            disabled=["id", "date_added"],
+            column_config={
+                "id": st.column_config.NumberColumn("ID", width="small"),
+                "company": st.column_config.TextColumn("Company"),
+                "title": st.column_config.TextColumn("Job Title"),
+                "url": st.column_config.LinkColumn("Job URL"),
+                "date_added": st.column_config.DateColumn("Date Added"),
+            },
+            hide_index=True
+        )
+
+        # Save button
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            if st.button("🔄 Reload Offers", width='content', key="reload_offers"):
+                st.cache_data.clear()
+                st.rerun()
+        with col2:
+            if st.button("💾 Save", type="primary", width='stretch', key="save_offers"):
+                db = SessionLocal()
+                try:
+                    for _, row in edited_offers.iterrows():
+                        if pd.isna(row.get("id")):
+                            continue
+                        offer = db.query(JobOffer).filter(JobOffer.id == int(row["id"])).first()
+                        if offer:
+                            offer.company = row["company"]
+                            offer.title = row["title"]
+                            offer.url = row["url"] if row["url"] else None
+                    db.commit()
+                    export_to_markdown()
+                    generate_readable_view()
+                    st.toast("✅ Offers saved!")
+                    st.cache_data.clear()
+                    st.rerun()
+                except Exception as e:
+                    db.rollback()
+                    st.error(f"Error: {e}")
+                finally:
+                    db.close()
+
+        # Promote to application
+        st.markdown("### 🚀 Promote to Application")
+        offer_labels = [f"{r['company']} — {r['title']}" for _, r in offers_df.iterrows()]
+        selected_label = st.selectbox("Select offer to promote", offer_labels, key="promote_offer_select")
+        selected_idx = offer_labels.index(selected_label)
+        selected_offer = offers_df.iloc[selected_idx]
+
+        if st.button("🚀 Promote to Application", type="primary"):
+            db = SessionLocal()
+            try:
+                # Find or create Contact
+                contact = db.query(Contact).filter(Contact.company == selected_offer["company"]).first()
+                if not contact:
+                    contact = Contact(
+                        company=selected_offer["company"],
+                        updated_date=datetime.now().date()
+                    )
+                    db.add(contact)
+                    db.flush()
+
+                # Create Application
+                app = Application(
+                    company_id=contact.id,
+                    job_link=selected_offer["url"] if selected_offer["url"] else None,
+                    date=datetime.now().date(),
+                    source="direct",
+                    status="not yet",
+                    answer="pending",
+                    closed="no"
+                )
+                db.add(app)
+
+                # Delete offer
+                offer_obj = db.query(JobOffer).filter(JobOffer.id == int(selected_offer["id"])).first()
+                if offer_obj:
+                    db.delete(offer_obj)
+
+                db.commit()
+                export_to_markdown()
+                generate_readable_view()
+                st.toast(f"✅ Promoted {selected_offer['company']} to Applications!")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception as e:
+                db.rollback()
+                st.error(f"Error: {e}")
+            finally:
+                db.close()
+    else:
+        st.info("No job offers yet. Add one to get started!")
