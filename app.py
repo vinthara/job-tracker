@@ -654,6 +654,16 @@ if len(candidature_df) > 0:
 
         st.markdown("---")
 
+# Auto-switch to a tab if flagged by a previous rerun
+if st.session_state.pop("_switch_to_tab", None) == 2:
+    import streamlit.components.v1 as components
+    components.html(
+        """<script>
+        window.parent.document.querySelectorAll('[data-baseweb="tab"]')[2].click();
+        </script>""",
+        height=0,
+    )
+
 # Create tabs
 tab1, tab2, tab3 = st.tabs(["📋 Applications", "📞 Contacts", "🔗 Job Offers"])
 
@@ -1048,6 +1058,9 @@ with tab2:
     else:
         st.info("No contacts found")
 
+def _stay_on_offers():
+    st.session_state["_switch_to_tab"] = 2
+
 with tab3:
     st.markdown("## 🔗 Job Offers")
 
@@ -1075,6 +1088,7 @@ with tab3:
                     db.commit()
                     st.toast("✅ Offer added!")
                     st.cache_data.clear()
+                    _stay_on_offers()
                     st.rerun()
                 except Exception as e:
                     st.error(f"Error: {e}")
@@ -1104,6 +1118,7 @@ with tab3:
         with col1:
             if st.button("🔄 Reload Offers", width='content', key="reload_offers"):
                 st.cache_data.clear()
+                _stay_on_offers()
                 st.rerun()
         with col2:
             if st.button("💾 Save", type="primary", width='stretch', key="save_offers"):
@@ -1122,6 +1137,7 @@ with tab3:
                     generate_readable_view()
                     st.toast("✅ Offers saved!")
                     st.cache_data.clear()
+                    _stay_on_offers()
                     st.rerun()
                 except Exception as e:
                     db.rollback()
@@ -1132,7 +1148,7 @@ with tab3:
         # Promote to application
         st.markdown("### 🚀 Promote to Application")
         offer_labels = [f"{r['company']} — {r['title']}" for _, r in offers_df.iterrows()]
-        selected_label = st.selectbox("Select offer to promote", offer_labels, key="promote_offer_select")
+        selected_label = st.selectbox("Select offer to promote", offer_labels, key="promote_offer_select", on_change=_stay_on_offers)
         selected_idx = offer_labels.index(selected_label)
         selected_offer = offers_df.iloc[selected_idx]
 
@@ -1171,6 +1187,7 @@ with tab3:
                 generate_readable_view()
                 st.toast(f"✅ Promoted {selected_offer['company']} to Applications!")
                 st.cache_data.clear()
+                st.session_state["_switch_to_tab"] = 2
                 st.rerun()
             except Exception as e:
                 db.rollback()
