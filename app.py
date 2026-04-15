@@ -654,20 +654,28 @@ if len(candidature_df) > 0:
 
         st.markdown("---")
 
-# Auto-switch to a tab if flagged by a previous rerun
-if st.session_state.pop("_switch_to_tab", None) == 2:
-    import streamlit.components.v1 as components
-    components.html(
-        """<script>
-        window.parent.document.querySelectorAll('[data-baseweb="tab"]')[2].click();
-        </script>""",
-        height=0,
-    )
+# Tab navigation
+if "active_tab" not in st.session_state:
+    st.session_state["active_tab"] = 0
 
-# Create tabs
-tab1, tab2, tab3 = st.tabs(["📋 Applications", "📞 Contacts", "🔗 Job Offers"])
+t1, t2, t3 = st.columns(3)
+with t1:
+    if st.button("📋 Applications", use_container_width=True,
+                 type="primary" if st.session_state.active_tab == 0 else "secondary"):
+        st.session_state.active_tab = 0
+with t2:
+    if st.button("📞 Contacts", use_container_width=True,
+                 type="primary" if st.session_state.active_tab == 1 else "secondary"):
+        st.session_state.active_tab = 1
+with t3:
+    if st.button("🔗 Job Offers", use_container_width=True,
+                 type="primary" if st.session_state.active_tab == 2 else "secondary"):
+        st.session_state.active_tab = 2
 
-with tab1:
+active_tab = st.session_state.active_tab
+st.markdown("---")
+
+if active_tab == 0:
     st.markdown("## 📋 Job Applications")
 
     # Quick rate summary
@@ -960,7 +968,7 @@ with tab1:
     else:
         st.info("No applications found")
 
-with tab2:
+if active_tab == 1:
     st.markdown("## Contacts")
 
     # Add new contact form
@@ -1022,7 +1030,7 @@ with tab2:
                 "phone_number": st.column_config.TextColumn("📞 Phone", width="medium"),
                 "updated_date": st.column_config.DateColumn("📅 Updated", format="YYYY-MM-DD"),
             },
-            hide_index=True
+            hide_index=True,
         )
 
         # Buttons
@@ -1058,10 +1066,7 @@ with tab2:
     else:
         st.info("No contacts found")
 
-def _stay_on_offers():
-    st.session_state["_switch_to_tab"] = 2
-
-with tab3:
+if active_tab == 2:
     st.markdown("## 🔗 Job Offers")
 
     # Add form
@@ -1088,7 +1093,6 @@ with tab3:
                     db.commit()
                     st.toast("✅ Offer added!")
                     st.cache_data.clear()
-                    _stay_on_offers()
                     st.rerun()
                 except Exception as e:
                     st.error(f"Error: {e}")
@@ -1118,7 +1122,6 @@ with tab3:
         with col1:
             if st.button("🔄 Reload Offers", width='content', key="reload_offers"):
                 st.cache_data.clear()
-                _stay_on_offers()
                 st.rerun()
         with col2:
             if st.button("💾 Save", type="primary", width='stretch', key="save_offers"):
@@ -1137,7 +1140,6 @@ with tab3:
                     generate_readable_view()
                     st.toast("✅ Offers saved!")
                     st.cache_data.clear()
-                    _stay_on_offers()
                     st.rerun()
                 except Exception as e:
                     db.rollback()
@@ -1148,7 +1150,7 @@ with tab3:
         # Promote to application
         st.markdown("### 🚀 Promote to Application")
         offer_labels = [f"{r['company']} — {r['title']}" for _, r in offers_df.iterrows()]
-        selected_label = st.selectbox("Select offer to promote", offer_labels, key="promote_offer_select", on_change=_stay_on_offers)
+        selected_label = st.selectbox("Select offer to promote", offer_labels, key="promote_offer_select")
         selected_idx = offer_labels.index(selected_label)
         selected_offer = offers_df.iloc[selected_idx]
 
@@ -1187,7 +1189,6 @@ with tab3:
                 generate_readable_view()
                 st.toast(f"✅ Promoted {selected_offer['company']} to Applications!")
                 st.cache_data.clear()
-                st.session_state["_switch_to_tab"] = 2
                 st.rerun()
             except Exception as e:
                 db.rollback()
