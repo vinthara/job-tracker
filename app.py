@@ -1154,46 +1154,68 @@ if active_tab == 2:
         selected_idx = offer_labels.index(selected_label)
         selected_offer = offers_df.iloc[selected_idx]
 
-        if st.button("🚀 Promote to Application", type="primary"):
-            db = SessionLocal()
-            try:
-                # Find or create Contact
-                contact = db.query(Contact).filter(Contact.company == selected_offer["company"]).first()
-                if not contact:
-                    contact = Contact(
-                        company=selected_offer["company"],
-                        updated_date=datetime.now().date()
+        col_promote, col_delete = st.columns(2)
+        with col_promote:
+            if st.button("🚀 Promote to Application", type="primary", use_container_width=True):
+                db = SessionLocal()
+                try:
+                    # Find or create Contact
+                    contact = db.query(Contact).filter(Contact.company == selected_offer["company"]).first()
+                    if not contact:
+                        contact = Contact(
+                            company=selected_offer["company"],
+                            updated_date=datetime.now().date()
+                        )
+                        db.add(contact)
+                        db.flush()
+
+                    # Create Application
+                    app = Application(
+                        company_id=contact.id,
+                        job_link=selected_offer["url"] if selected_offer["url"] else None,
+                        date=datetime.now().date(),
+                        source="direct",
+                        status="not yet",
+                        answer="pending",
+                        closed="no"
                     )
-                    db.add(contact)
-                    db.flush()
+                    db.add(app)
 
-                # Create Application
-                app = Application(
-                    company_id=contact.id,
-                    job_link=selected_offer["url"] if selected_offer["url"] else None,
-                    date=datetime.now().date(),
-                    source="direct",
-                    status="not yet",
-                    answer="pending",
-                    closed="no"
-                )
-                db.add(app)
+                    # Delete offer
+                    offer_obj = db.query(JobOffer).filter(JobOffer.id == int(selected_offer["id"])).first()
+                    if offer_obj:
+                        db.delete(offer_obj)
 
-                # Delete offer
-                offer_obj = db.query(JobOffer).filter(JobOffer.id == int(selected_offer["id"])).first()
-                if offer_obj:
-                    db.delete(offer_obj)
+                    db.commit()
+                    export_to_markdown()
+                    generate_readable_view()
+                    st.toast(f"✅ Promoted {selected_offer['company']} to Applications!")
+                    st.cache_data.clear()
+                    st.rerun()
+                except Exception as e:
+                    db.rollback()
+                    st.error(f"Error: {e}")
+                finally:
+                    db.close()
 
-                db.commit()
-                export_to_markdown()
-                generate_readable_view()
-                st.toast(f"✅ Promoted {selected_offer['company']} to Applications!")
-                st.cache_data.clear()
-                st.rerun()
-            except Exception as e:
-                db.rollback()
-                st.error(f"Error: {e}")
-            finally:
-                db.close()
+        with col_delete:
+            if st.button("🗑️ Delete", use_container_width=True):
+                db = SessionLocal()
+                try:
+                    offer_obj = db.query(JobOffer).filter(JobOffer.id == int(selected_offer["id"])).first()
+                    if offer_obj:
+                        company = offer_obj.company
+                        db.delete(offer_obj)
+                        db.commit()
+                        export_to_markdown()
+                        generate_readable_view()
+                        st.toast(f"✅ Deleted {company}")
+                        st.cache_data.clear()
+                        st.rerun()
+                except Exception as e:
+                    db.rollback()
+                    st.error(f"Error: {e}")
+                finally:
+                    db.close()
     else:
         st.info("No job offers yet. Add one to get started!")
