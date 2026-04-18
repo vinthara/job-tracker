@@ -12,7 +12,7 @@ SessionLocal = sessionmaker(bind=engine)
 class Contact(Base):
     __tablename__ = 'contacts'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     company = Column(String, nullable=False)
     firstname = Column(String)
     lastname = Column(String)
@@ -24,7 +24,7 @@ class Contact(Base):
 class Application(Base):
     __tablename__ = 'applications'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     company_id = Column(Integer, ForeignKey('contacts.id'), nullable=False)  # Foreign key to contacts table
     client = Column(String)  # Final client you work with (e.g., Servier)
     job_link = Column(String)
@@ -48,7 +48,7 @@ class Application(Base):
 class JobOffer(Base):
     __tablename__ = 'job_offers'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     company = Column(String, nullable=False)
     title = Column(String, nullable=False)
     url = Column(String)
