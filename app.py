@@ -701,20 +701,20 @@ if active_tab == 0:
             col1, col2, col3 = st.columns(3)
             with col1:
                 new_company = st.selectbox("Company", options=company_list if company_list else [""])
-                new_client = st.text_input("Client (optional)", placeholder="e.g., Servier, France TV")
-                new_job_link = st.text_input("Job Link", placeholder="https://...")
+                new_client = st.text_input("Client (optional)", placeholder="e.g., Servier, France TV").strip()
+                new_job_link = st.text_input("Job Link", placeholder="https://...").strip()
                 new_date = st.date_input("Application Date", value=datetime.now())
                 new_source = st.selectbox("Source", ["linkedin", "job board", "referral", "direct contact", "other"])
             with col2:
                 new_status = st.selectbox("Status", ["sent", "responded", "negotiation", "accepted", "rejected"])
                 new_answer = st.selectbox("Answer", ["not yet", "refused", "accepted", "too late"])
                 new_answer_date = st.date_input("Answer Date (optional)", value=None)
-                new_duration = st.text_input("Duration", placeholder="e.g., 3 months, 6 months")
+                new_duration = st.text_input("Duration", placeholder="e.g., 3 months, 6 months").strip()
             with col3:
                 new_expected_rate = st.number_input("Expected Rate (€/day)", min_value=0, value=0, step=50)
                 new_offered_rate = st.number_input("Offered Rate (€/day)", min_value=0, value=0, step=50)
                 new_start_date = st.date_input("Start Date (optional)", value=None)
-                new_notes = st.text_area("Notes", placeholder="Tech stack, requirements, etc.")
+                new_notes = st.text_area("Notes", placeholder="Tech stack, requirements, etc.").strip()
 
             submitted = st.form_submit_button("Add Application", type="primary")
             if submitted and new_company:
@@ -757,7 +757,7 @@ if active_tab == 0:
     st.markdown("### 🔍 Filters")
     col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
     with col1:
-        search_term = st.text_input("Search Company", "", placeholder="Type to search...", label_visibility="collapsed")
+        search_term = st.text_input("Search Company", "", placeholder="Type to search...", label_visibility="collapsed").strip()
         st.caption("🔍 Search")
     with col2:
         status_filter = st.selectbox("Answer Status", options=["All", "Pending", "Accepted", "Refused"], index=0, label_visibility="collapsed")
@@ -905,19 +905,19 @@ if active_tab == 0:
                             if row['company'] in company_to_id:
                                 app.company_id = company_to_id[row['company']]
 
-                            app.client = row['client'] if pd.notna(row['client']) and row['client'] else None
-                            app.job_link = row['job_link'] if pd.notna(row['job_link']) and row['job_link'] else None
+                            app.client = row['client'].strip() if pd.notna(row['client']) and row['client'] else None
+                            app.job_link = row['job_link'].strip() if pd.notna(row['job_link']) and row['job_link'] else None
                             app.date = row['date'].date() if pd.notna(row['date']) else None
-                            app.source = row['source']
-                            app.status = row['status']
-                            app.answer = row['answer']
+                            app.source = row['source'].strip() if pd.notna(row['source']) else None
+                            app.status = row['status'].strip() if pd.notna(row['status']) else None
+                            app.answer = row['answer'].strip() if pd.notna(row['answer']) else None
                             app.answer_date = row['answer_date'].date() if pd.notna(row['answer_date']) else None
                             app.expected_rate = row['expected_rate'] if pd.notna(row['expected_rate']) else None
                             app.offered_rate = row['offered_rate'] if pd.notna(row['offered_rate']) else None
-                            app.duration = row['duration'] if pd.notna(row['duration']) and row['duration'] else None
+                            app.duration = row['duration'].strip() if pd.notna(row['duration']) and row['duration'] else None
                             app.start_date = row['start_date'].date() if pd.notna(row['start_date']) else None
-                            app.notes = row['notes'] if pd.notna(row['notes']) and row['notes'] else None
-                            app.closed = row['closed']
+                            app.notes = row['notes'].strip() if pd.notna(row['notes']) and row['notes'] else None
+                            app.closed = row['closed'].strip() if pd.notna(row['closed']) else None
 
                     db.commit()
                     export_to_markdown()
@@ -976,12 +976,12 @@ if active_tab == 1:
         with st.form("add_contact"):
             col1, col2 = st.columns(2)
             with col1:
-                new_contact_company = st.text_input("Company Name", placeholder="Company")
-                new_firstname = st.text_input("First Name", placeholder="John")
-                new_lastname = st.text_input("Last Name", placeholder="Doe")
+                new_contact_company = st.text_input("Company Name", placeholder="Company").strip()
+                new_firstname = st.text_input("First Name", placeholder="John").strip()
+                new_lastname = st.text_input("Last Name", placeholder="Doe").strip()
             with col2:
-                new_linkedin = st.text_input("LinkedIn Link", placeholder="https://www.linkedin.com/in/...")
-                new_phone = st.text_input("Phone Number", placeholder="+33 6 12 34 56 78")
+                new_linkedin = st.text_input("LinkedIn Link", placeholder="https://www.linkedin.com/in/...").strip()
+                new_phone = st.text_input("Phone Number", placeholder="+33 6 12 34 56 78").strip()
 
             submitted_contact = st.form_submit_button("Add Contact", type="primary")
             if submitted_contact and new_contact_company:
@@ -1046,11 +1046,11 @@ if active_tab == 1:
                     for _, row in edited_contacts.iterrows():
                         contact = db.query(Contact).filter(Contact.id == row['id']).first()
                         if contact:
-                            contact.company = row['company']
-                            contact.firstname = row['firstname'] if pd.notna(row['firstname']) and row['firstname'] else None
-                            contact.lastname = row['lastname'] if pd.notna(row['lastname']) and row['lastname'] else None
-                            contact.linkedin_link = row['linkedin_link'] if pd.notna(row['linkedin_link']) and row['linkedin_link'] else None
-                            contact.phone_number = row['phone_number'] if pd.notna(row['phone_number']) and row['phone_number'] else None
+                            contact.company = row['company'].strip() if pd.notna(row['company']) else None
+                            contact.firstname = row['firstname'].strip() if pd.notna(row['firstname']) and row['firstname'] else None
+                            contact.lastname = row['lastname'].strip() if pd.notna(row['lastname']) and row['lastname'] else None
+                            contact.linkedin_link = row['linkedin_link'].strip() if pd.notna(row['linkedin_link']) and row['linkedin_link'] else None
+                            contact.phone_number = row['phone_number'].strip() if pd.notna(row['phone_number']) and row['phone_number'] else None
                             # Note: No need to update applications - the FK relationship handles it automatically
 
                     db.commit()
@@ -1074,11 +1074,11 @@ if active_tab == 2:
         with st.form("add_offer"):
             col1, col2, col3 = st.columns(3)
             with col1:
-                new_company = st.text_input("Company *", key="offer_company")
+                new_company = st.text_input("Company *", key="offer_company").strip()
             with col2:
-                new_title = st.text_input("Job Title *", key="offer_title")
+                new_title = st.text_input("Job Title *", key="offer_title").strip()
             with col3:
-                new_url = st.text_input("Job URL", key="offer_url")
+                new_url = st.text_input("Job URL", key="offer_url").strip()
             submitted = st.form_submit_button("Add Offer", type="primary")
             if submitted and new_company and new_title:
                 db = SessionLocal()
@@ -1132,9 +1132,9 @@ if active_tab == 2:
                             continue
                         offer = db.query(JobOffer).filter(JobOffer.id == int(row["id"])).first()
                         if offer:
-                            offer.company = row["company"]
-                            offer.title = row["title"]
-                            offer.url = row["url"] if row["url"] else None
+                            offer.company = row["company"].strip() if pd.notna(row["company"]) else None
+                            offer.title = row["title"].strip() if pd.notna(row["title"]) else None
+                            offer.url = row["url"].strip() if pd.notna(row["url"]) and row["url"] else None
                     db.commit()
                     export_to_markdown()
                     generate_readable_view()
