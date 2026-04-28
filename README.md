@@ -17,6 +17,15 @@ A self-hosted web application to track job applications and networking contacts 
 - Data stored in markdown files for easy backup and version control
 - **🌐 Production-ready deployment** with nginx and systemd
 
+## ⚠️ Disclaimer
+
+This application was **fully coded with AI assistance**. The user has thoroughly reviewed and guided the development process, making all architectural decisions. 
+
+**Important notes:**
+- This is a **single-user application** designed exclusively for the app owner—imperfect implementations are not problematic given this scope
+- The app owner has independently verified that **data is secure and cannot be breached**, with authentication restricted to the owner only
+- All security measures (OAuth configuration, email whitelist, SSL) have been reviewed and validated by the user
+
 ## Setup
 
 ### Prerequisites
