@@ -2,6 +2,17 @@
 
 A self-hosted web application to track job applications and networking contacts using SQLite for data storage with automatic markdown export for viewing in neovim.
 
+## ⚠️ Disclaimer
+
+This application was **fully coded with AI assistance**. The user has thoroughly reviewed and guided the development process, making all architectural decisions. 
+
+**Important notes:**
+- This is a **single-user application** designed exclusively for the app owner—imperfect implementations are not problematic given this scope
+- The app owner has independently verified that **data is secure and cannot be breached**, with authentication restricted to the owner only
+- All security measures (OAuth configuration, email whitelist, SSL) have been reviewed and validated by the user
+
+---
+
 ![Job Tracker Dashboard](screenshot.png)
 
 *Dashboard showing application statistics, funnel visualization, and job tracking table*
@@ -16,15 +27,6 @@ A self-hosted web application to track job applications and networking contacts 
 - Add/edit/delete entries through web interface
 - Data stored in markdown files for easy backup and version control
 - **🌐 Production-ready deployment** with nginx and systemd
-
-## ⚠️ Disclaimer
-
-This application was **fully coded with AI assistance**. The user has thoroughly reviewed and guided the development process, making all architectural decisions. 
-
-**Important notes:**
-- This is a **single-user application** designed exclusively for the app owner—imperfect implementations are not problematic given this scope
-- The app owner has independently verified that **data is secure and cannot be breached**, with authentication restricted to the owner only
-- All security measures (OAuth configuration, email whitelist, SSL) have been reviewed and validated by the user
 
 ## Setup
 
